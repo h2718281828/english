@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>英単語クイズ（to不定詞 / 動名詞 / 両方）</title>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #f0f4fa;
+        padding: 20px;
+        text-align: center;
+    }
+    #quiz-box {
+        background: white;
+        padding: 20px;
+        border-radius: 15px;
+        max-width: 500px;
+        width: 90%;
+        margin: auto;
+        box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+    .counter {
+        font-size: 16px;
+        margin-bottom: 10px;
+        color: #555;
+    }
+    h1 {
+        font-size: 28px;
+        word-break: break-word;
+    }
+    button {
+        padding: 12px 0;
+        margin: 8px 0;
+        width: 90%;
+        border: none;
+        border-radius: 8px;
+        font-size: 18px;
+        cursor: pointer;
+    }
+    .btn-to { background: #8ec9ff; }
+    .btn-ing { background: #a0e8a0; }
+    .btn-both { background: #ffd27f; }
+    .retry-btn { background: #ff8e8e; margin-top: 20px; }
+
+    #result {
+        margin-top: 15px;
+        font-size: 20px;
+        min-height: 24px;
+    }
+
+    #wrong-list {
+        margin-top: 20px;
+        text-align: left;
+        display: none;
+        background: #fff;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 0 5px rgba(0,0,0,0.3);
+    }
+
+    @media (max-width: 480px) {
+        h1 { font-size: 22px; }
+        button { font-size: 16px; }
+        .counter { font-size: 14px; }
+    }
+</style>
+</head>
+<body>
+
+<div id="quiz-box">
+    <h2>英単語クイズ</h2>
+    <p>to不定詞 / 動名詞 / 両方 を選んでね</p>
+
+    <div id="counter" class="counter"></div>
+    <h1 id="word">準備中...</h1>
+
+    <button class="btn-to" onclick="answer('to')">to 不定詞</button>
+    <button class="btn-ing" onclick="answer('ing')">動名詞 (ing)</button>
+    <button class="btn-both" onclick="answer('both')">両方</button>
+
+    <div id="result"></div>
+</div>
+
+<div id="wrong-list">
+    <h3>間違えた単語一覧</h3>
+    <ul id="wrong-items"></ul>
+    <button class="retry-btn" onclick="retryWrong()">間違えた問題だけ再挑戦</button>
+</div>
+
+<script>
+/* === 語彙データ === */
+
+const list_to = [
+    "want","wish","would like","would love","like","happy","glad","pleased","proud",
+    "plan","decide","chose","promise","agree","learn","remember","fail","sorry",
+    "surprised","amazed","hope","mean","refuse","forget","manage","begin","start",
+    "lucky","hasitate","volunteer","arrange","warn","tell","offer","proposal",
+    "place","time","way","reason","money","chance","effort","able","sure","ready",
+    "likely","eager","anxious","willing","reluctant","afford","hesitate","prepare",
+    "feel free"
+];
+
+const list_ing = [
+    "enjoy","finish","stop","quit","give up","avode","mind","put off","admit","worth",
+    "involve","keep","risk","help","use","suggest","escape","no use","with aview to",
+    "be used to","lookforward to","what do you say to","be busy","be (place)","lie",
+    "sit","stand","spend~","waste~","kill (time)","have fun","have truble",
+    "have difficult","have a hard time","consider","postpone"
+];
+
+const list_both = [
+    "need","like","love","hate","prefer","begin","start","continue"
+];
+
+const wordTypes = {};
+list_to.forEach(w => wordTypes[w] = "to");
+list_ing.forEach(w => wordTypes[w] = "ing");
+list_both.forEach(w => wordTypes[w] = "both");
+
+let words = Object.keys(wordTypes);
+let wrong = [];
+let currentIndex = 0;
+
+let retryMode = false;  // ←再挑戦かどうか
+
+// ランダム並び替え
+words = words.sort(() => Math.random() - 0.5);
+
+function showNextWord() {
+    if (currentIndex >= words.length) {
+        finishQuiz();
+        return;
+    }
+
+    document.getElementById("counter").textContent =
+        `問題 ${currentIndex + 1} / ${words.length}`;
+
+    document.getElementById("word").textContent = words[currentIndex];
+    document.getElementById("result").textContent = "";
+}
+
+function answer(userAnswer) {
+    const word = words[currentIndex];
+    const correct = wordTypes[word];
+
+    if (userAnswer === correct) {
+        document.getElementById("result").textContent = "⭕ 正解！";
+    } else {
+        document.getElementById("result").textContent =
+            `❌ 不正解！ 正解：${correct}`;
+        wrong.push({word, correct, userAnswer});
+    }
+
+    currentIndex++;
+    setTimeout(showNextWord, 700);
+}
+
+function finishQuiz() {
+    const total = words.length;
+    const correctCount = total - wrong.length;
+    const rate = Math.round((correctCount / total) * 100);
+
+    document.getElementById("quiz-box").innerHTML =
+        `<h2>お疲れさま！</h2>
+         <p>正答率：<b>${rate}%</b>（正解 ${correctCount} / ${total}）</p>
+         <p>下に結果があります</p>`;
+
+    const wrongBox = document.getElementById("wrong-list");
+    const wrongItems = document.getElementById("wrong-items");
+
+    wrongItems.innerHTML = "";
+
+    if (wrong.length === 0) {
+        wrongItems.innerHTML = "<li>全問正解！すごい！🎉</li>";
+        document.querySelector(".retry-btn").style.display = "none";
+    } else {
+        wrong.forEach(item => {
+            const li = document.createElement("li");
+            li.textContent =
+                `${item.word} → 正解：${item.correct}（あなたの答え：${item.userAnswer}）`;
+            wrongItems.appendChild(li);
+        });
+    }
+
+    wrongBox.style.display = "block";
+}
+
+/* === 間違えた問題だけ再挑戦モード === */
+
+function retryWrong() {
+    retryMode = true;
+
+    // 間違えた単語だけの新しいリストを作る
+    words = wrong.map(x => x.word);
+
+    // カウンターなどの初期化
+    currentIndex = 0;
+    wrong = [];
+
+    // UI リセット
+    document.getElementById("wrong-list").style.display = "none";
+
+    document.body.scrollTop = 0;
+    document.documentElement.scrollTop = 0;
+
+    document.getElementById("quiz-box").innerHTML = `
+        <h2>再挑戦モード</h2>
+        <p>間違えた問題だけ解き直します</p>
+        <div id="counter" class="counter"></div>
+        <h1 id="word">準備中...</h1>
+        <button class="btn-to" onclick="answer('to')">to 不定詞</button>
+        <button class="btn-ing" onclick="answer('ing')">動名詞 (ing)</button>
+        <button class="btn-both" onclick="answer('both')">両方</button>
+        <div id="result"></div>
+    `;
+
+    showNextWord();
+}
+
+showNextWord();
+</script>
+
+</body>
+</html>
